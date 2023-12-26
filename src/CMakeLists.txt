@@ -1,0 +1,12 @@
+file (GLOB_RECURSE HEADERS "${PROJECT_SOURCE_DIR}/src/*h")
+file (GLOB_RECURSE SOURCES "${PROJECT_SOURCE_DIR}/src/*cpp")
+
+add_library(${PROJECT_NAME} SHARED
+    ${HEADERS}
+    ${SOURCES}
+)
+
+target_include_directories(${PROJECT_NAME} PRIVATE
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>
+)
+

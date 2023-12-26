@@ -1,0 +1,31 @@
+BasedOnStyle: WebKit
+IndentWidth: 4
+UseTab: Never
+TabWidth: 4
+AllowShortIfStatementsOnASingleLine: false
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: false
+AllowAllParametersOfDeclarationOnNextLine: false
+AllowAllArgumentsOnNextLine: false
+AllowShortBlocksOnASingleLine: false
+DerivePointerAlignment: false
+PointerAlignment: Right
+BraceWrapping:
+  AfterClass:      false
+  AfterControlStatement: false
+  AfterEnum:       false
+  AfterFunction:   true
+  AfterNamespace:  true
+  AfterObjCDeclaration: true
+  AfterStruct:     false
+  AfterUnion:      false
+  BeforeCatch:     false
+  BeforeElse:      false
+  IndentBraces:    false
+#AlignConsecutiveAssignments: Consecutive
+BreakBeforeBraces: Custom
+IndentCaseLabels: true
+SpaceBeforeParens: ControlStatements
+SpaceAfterCStyleCast: true
+SortIncludes: true
+BinPackParameters: true

@@ -1,0 +1,26 @@
+# user file
+*.user
+*.user.*
+
+# build directories
+debug/
+release/
+build/
+bin/
+artifacts/
+
+# visual studio file
+*.VC.db
+*.ini
+*.sln
+*.vcxproj
+*.vcxproj.*
+*.opensdf
+*.sdf
+*.rc
+*.VC.VC.opendb
+vc140.pdb
+.vs/
+
+# vscode setting files
+.vscode/
