@@ -7,6 +7,7 @@ add_library(${PROJECT_NAME} SHARED
 )
 
 target_compile_definitions(${PROJECT_NAME} PRIVATE
+    SERVICE_FLOW_LIBRARY
     $<$<CONFIG:Release>:NDEBUG>
 )
 
