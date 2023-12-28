@@ -8,7 +8,7 @@ SF_BEGIN_NAMESPACE
 
 class ThreadPool;
 class _Future;
-class Future : public Object {
+class SF_LIBRARY_EXPORT Future : public Object {
 public:
     enum State {
         NoState = 0x00,

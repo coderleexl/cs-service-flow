@@ -5,7 +5,7 @@
 
 SF_BEGIN_NAMESPACE
 
-class VirtCallObject {
+class SF_LIBRARY_EXPORT VirtCallObject {
 public:
     VirtCallObject()
     {

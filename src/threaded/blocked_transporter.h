@@ -6,7 +6,7 @@
 SF_BEGIN_NAMESPACE
 
 class _BlockedTransporter;
-class BlockedTransporter : public Transporter {
+class SF_LIBRARY_EXPORT BlockedTransporter : public Transporter {
     SF_PRIVATE_CLASS(BlockedTransporter)
 public:
     BlockedTransporter();

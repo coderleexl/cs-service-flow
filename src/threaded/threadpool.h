@@ -10,7 +10,7 @@ SF_BEGIN_NAMESPACE
 class Future;
 class Runnable;
 class _ThreadPool;
-class ThreadPool : public Object {
+class SF_LIBRARY_EXPORT ThreadPool : public Object {
 public:
     ThreadPool();
     ~ThreadPool();

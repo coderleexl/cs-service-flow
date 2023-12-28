@@ -7,7 +7,7 @@
 
 SF_BEGIN_NAMESPACE
 
-class Runnable : public Task {
+class SF_LIBRARY_EXPORT Runnable : public Task {
 public:
     Runnable();
     inline virtual ~Runnable() {};

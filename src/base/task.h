@@ -9,7 +9,7 @@
 SF_BEGIN_NAMESPACE
 
 class Context;
-class Task : public Object {
+class SF_LIBRARY_EXPORT Task : public Object {
 public:
     Task();
     virtual ~Task() = default;
