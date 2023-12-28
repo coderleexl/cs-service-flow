@@ -2,7 +2,7 @@
 #define _BASE_OBJECT_H_
 
 #include "sf_global.h"
-#include "virtobject.h"
+#include "vcobject.h"
 
 #include <memory>
 
@@ -11,10 +11,7 @@ SF_BEGIN_NAMESPACE
 class ObjectImpl;
 class Object : public VirtCallObject, public std::enable_shared_from_this<Object> {
 public:
-    Object(ObjectImpl *impl)
-        : _impl(impl)
-    {
-    }
+    Object() = default;
 
     inline ObjectImpl *impl()
     {
@@ -35,6 +32,11 @@ public:
     }
 
 protected:
+    Object(ObjectImpl *impl)
+        : _impl(impl)
+    {
+    }
+
     std::unique_ptr<ObjectImpl> _impl;
 };
 

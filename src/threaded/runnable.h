@@ -17,7 +17,12 @@ public:
 
     virtual void sameAs(Runnable *task);
 
+protected:
+    Runnable(ObjectImpl *impl);
+
 private:
+    SF_PRIVATE_CLASS(Runnable)
+
     void *_p;
 };
 

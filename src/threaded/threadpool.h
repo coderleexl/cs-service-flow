@@ -5,8 +5,6 @@
 
 #include "base/object.h"
 
-#include <memory>
-
 SF_BEGIN_NAMESPACE
 
 class Future;

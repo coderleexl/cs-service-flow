@@ -1,7 +1,10 @@
 #include "threadpool.h"
-#include "base/object_p.h"
+#include "blocked_transporter.h"
 #include "future.h"
 #include "runnable.h"
+
+#include "base/data.h"
+#include "private/object_p.h"
 
 #include <assert.h>
 #include <map>
@@ -15,7 +18,7 @@ SF_BEGIN_NAMESPACE
 #define _MAX_THREAD_COUNT 512
 
 struct ThreadData;
-struct ThreadRunnableData {
+struct ThreadRunnableData : public AbstractData {
     ThreadData *thread = nullptr;
     std::shared_ptr<Runnable> runnable = nullptr;
     std::shared_ptr<Future> future;
@@ -26,39 +29,8 @@ struct ThreadData {
 
     std::mutex queueMutex;
     std::condition_variable queueCondition;
-    std::queue<ThreadRunnableData *> workQueue;
-
-    inline int queueSize()
-    {
-        queueMutex.lock();
-        int size = workQueue.size();
-        queueMutex.unlock();
-
-        return size;
-    }
-
-    inline void pushData(ThreadRunnableData *data)
-    {
-        queueMutex.lock();
-        workQueue.push(data);
-        queueCondition.notify_one();
-        queueMutex.unlock();
-    }
-
-    inline ThreadRunnableData *takeData()
-    {
-        std::unique_lock<std::mutex> lock(queueMutex);
-
-        while (workQueue.empty()
-            || workQueue.front()->future->state() & Future::Paused) {
-            queueCondition.wait(lock);
-        }
-
-        ThreadRunnableData *data = workQueue.front();
-        workQueue.pop();
-
-        return data;
-    }
+    BlockedTransporter *workTSP;
+    BlockedTransporter *pausedTSP;
 };
 
 class _ThreadPool : public ObjectImpl {
@@ -141,22 +113,18 @@ ThreadData *_ThreadPool::scheduleThread()
     // least load schedule
     //! @todo add more schedule algorithm
     ThreadData *leastThreadData = nullptr;
-    int leastQueueSize = 0;
+    int leastDataCount = 0;
 
     std::for_each(threads.begin(), threads.end(),
         [&](ThreadData *data) {
-            int queueSize = data->queueSize();
-            if (queueSize < leastQueueSize) {
-                leastQueueSize = queueSize;
+            int dataCount = data->workTSP->dataCount();
+            if (dataCount < leastDataCount) {
+                leastDataCount = dataCount;
                 leastThreadData = data;
             }
         });
 
     return leastThreadData;
-}
-
-void createThreadFuture(ThreadData *data)
-{
 }
 
 ThreadPool::ThreadPool()
@@ -201,7 +169,7 @@ std::shared_ptr<Future> ThreadPool::start(const std::shared_ptr<Runnable> &runna
     assert(threadData);
 
     ThreadRunnableData *runnableData = _p->allocateRunnableData(runnable, threadData);
-    threadData->pushData(runnableData);
+    threadData->workTSP->putData(runnableData);
 
     return runnableData->future;
 }

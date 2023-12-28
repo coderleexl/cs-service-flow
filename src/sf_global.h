@@ -38,6 +38,6 @@
 #define SF_PUBLIC_CLASS(NAME) SF_PUBLIC_CLASS_IMPL(NAME)
 #define SF_PRIVATE_FUNCTION(NAME, ...) SF_PRIVATE_FUNCTION_IMPL(NAME, __VA_ARGS__)
 
-#include "base/global_p.h"
+#include "base/global_defines.h"
 
 #endif // _SF_GLOBAL_HEADER_

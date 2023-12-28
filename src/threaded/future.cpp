@@ -1,7 +1,7 @@
 #include "future.h"
 #include "threadpool.h"
 
-#include "base/object_p.h"
+#include "private/object_p.h"
 
 #include <atomic>
 #include <cstdarg>

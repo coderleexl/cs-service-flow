@@ -1,7 +1,7 @@
 #ifndef _BASE_OBJECT_P_H_
 #define _BASE_OBJECT_P_H_
 
-#include "object.h"
+#include "base/object.h"
 
 SF_BEGIN_NAMESPACE
 
