@@ -10,6 +10,7 @@ SF_BEGIN_NAMESPACE
 class Future;
 class Runnable;
 class _ThreadPool;
+
 class SF_LIBRARY_EXPORT ThreadPool : public Object {
 public:
     ThreadPool();
@@ -27,7 +28,8 @@ public:
 private:
     SF_FRIEND_CLASS(Future)
     SF_PRIVATE_CLASS(ThreadPool)
-    SF_PRIVATE_FUNCTION(_runnableStateChanged, Future *)
+    SF_PRIVATE_FUNCTION(_runnableStateChanged, Future *, void *)
+    SF_PRIVATE_FUNCTION(_waitRunnableStarted, Future *)
     SF_PRIVATE_FUNCTION(_waitRunnableFinished, Future *)
 };
 

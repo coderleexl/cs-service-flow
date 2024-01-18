@@ -3,39 +3,28 @@
 
 #include "base/object.h"
 
+#include <cstdarg>
+#include <unordered_map>
+
 SF_BEGIN_NAMESPACE
 
 class ObjectImpl : public VirtCallObject {
 public:
-    ObjectImpl(Object *pub)
-        : _pub(pub)
-    {
-    }
-    ~ObjectImpl()
-    {
-        _pub = nullptr;
-    }
+    ObjectImpl(Object *pub);
+    ~ObjectImpl();
 
-    inline Object *object()
-    {
-        return _pub;
-    }
-    inline const Object *object() const
-    {
-        return _pub;
-    }
+    Object *object();
+    const Object *object() const;
 
-    inline VirtCallObject *vo()
-    {
-        return reinterpret_cast<VirtCallObject *>(_pub);
-    }
-    inline const VirtCallObject *vo() const
-    {
-        return reinterpret_cast<const VirtCallObject *>(_pub);
-    }
+    VirtCallObject *vo();
+    const VirtCallObject *vo() const;
+
+    typedef void (*VirtualHandler)(va_list &, ObjectImpl *);
+    virtual void virtual_call(const char *name, int argc, ...) override;
 
 protected:
     Object *_pub = nullptr;
+    std::unordered_map<const char *, VirtualHandler> handlers;
 };
 
 SF_END_NAMESPACE

@@ -7,7 +7,9 @@
 SF_BEGIN_NAMESPACE
 
 class ThreadPool;
+class _ThreadPool;
 class _Future;
+
 class SF_LIBRARY_EXPORT Future : public Object {
 public:
     enum State {
@@ -31,12 +33,12 @@ public:
     State state() const;
 
 private:
-    void setThreadPool(ThreadPool *pool);
-    void bindData(void *data);
-
     SF_FRIEND_CLASS(ThreadPool)
+    SF_FRIEND_CLASS(_ThreadPool)
     SF_PRIVATE_CLASS(Future)
     SF_PRIVATE_FUNCTION(_setState, Future::State)
+    SF_PRIVATE_FUNCTION(_setThreadPool, ThreadPool *)
+    SF_PRIVATE_FUNCTION(_bindData, void *)
 };
 
 SF_END_NAMESPACE

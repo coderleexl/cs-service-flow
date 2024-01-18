@@ -10,12 +10,11 @@ SF_BEGIN_NAMESPACE
 class SF_LIBRARY_EXPORT Runnable : public Task {
 public:
     Runnable();
-    inline virtual ~Runnable() {};
+    virtual ~Runnable();
 
-    virtual void precede(Runnable *task);
-    virtual void behind(Runnable *task);
-
-    virtual void sameAs(Runnable *task);
+    virtual void precede(Task *task) override;
+    virtual void behind(Task *task) override;
+    virtual Runnable *next() const override;
 
 protected:
     Runnable(ObjectImpl *impl);

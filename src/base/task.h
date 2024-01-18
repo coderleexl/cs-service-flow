@@ -18,12 +18,13 @@ public:
 
     virtual void precede(Task *task);
     virtual void behind(Task *task);
-
-protected:
-    Task(ObjectImpl *impl);
+    virtual Task *next() const;
 
     virtual void prepare(Context *context) = 0;
     virtual void execute(Context *context) = 0;
+
+protected:
+    Task(ObjectImpl *impl);
 };
 
 SF_END_NAMESPACE

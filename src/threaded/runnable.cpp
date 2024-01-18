@@ -9,16 +9,21 @@ Runnable::Runnable()
 {
 }
 
-void Runnable::precede(Runnable *task)
+Runnable::~Runnable()
 {
 }
 
-void Runnable::behind(Runnable *task)
+void Runnable::precede(Task *task)
 {
 }
 
-void Runnable::sameAs(Runnable *task)
+void Runnable::behind(Task *task)
 {
+}
+
+Runnable *Runnable::next() const
+{
+    return nullptr;
 }
 
 Runnable::Runnable(ObjectImpl *impl)

@@ -17,6 +17,11 @@ void Task::behind(Task *task)
 {
 }
 
+Task *Task::next() const
+{
+    return nullptr;
+}
+
 Task::Task(ObjectImpl *impl)
     : Object(impl)
 {
