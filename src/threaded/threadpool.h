@@ -29,8 +29,6 @@ private:
     SF_FRIEND_CLASS(Future)
     SF_PRIVATE_CLASS(ThreadPool)
     SF_PRIVATE_FUNCTION(_runnableStateChanged, Future *, void *)
-    SF_PRIVATE_FUNCTION(_waitRunnableStarted, Future *)
-    SF_PRIVATE_FUNCTION(_waitRunnableFinished, Future *)
 };
 
 SF_END_NAMESPACE

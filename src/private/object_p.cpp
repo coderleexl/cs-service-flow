@@ -1,5 +1,7 @@
 #include "object_p.h"
 
+#include <cassert>
+
 SF_BEGIN_NAMESPACE
 
 ObjectImpl::ObjectImpl(Object *pub)
@@ -30,6 +32,19 @@ VirtCallObject *ObjectImpl::vo()
 const VirtCallObject *ObjectImpl::vo() const
 {
     return reinterpret_cast<const VirtCallObject *>(_pub);
+}
+
+void ObjectImpl::installVirtualHandler(const std::unordered_map<const char *, VirtualHandler> &handlers)
+{
+    for (auto it = handlers.begin(); it != handlers.end(); ++it) {
+        this->handlers.insert(std::move(*it));
+    }
+}
+
+void ObjectImpl::installVirtualHandler(const char *name, VirtualHandler handler)
+{
+    assert(name && handler);
+    this->handlers.insert(std::make_pair(name, handler));
 }
 
 void ObjectImpl::virtual_call(const char *name, int argc, ...)

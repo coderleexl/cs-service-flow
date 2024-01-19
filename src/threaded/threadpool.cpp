@@ -29,9 +29,7 @@ struct ThreadRunnableData : public AbstractData {
 struct ThreadData {
     std::thread thread;
 
-    std::mutex queueMutex;
-    std::condition_variable queueCondition;
-    BlockedTransporter *workTSP;
+    std::unique_ptr<BlockedTransporter> workTSP;
     std::vector<ThreadRunnableData *> pauseDatas;
 };
 
@@ -52,21 +50,19 @@ public:
     ThreadRunnableData *allocateRunnableData(const std::shared_ptr<Runnable> &runnable, ThreadData *currentThread);
 
     static void runnableStateChanged(va_list &args, ObjectImpl *impl);
-    static void waitRunnableStarted(va_list &args, ObjectImpl *impl);
-    static void waitRunnableFinished(va_list &args, ObjectImpl *impl);
 
     int maxThreadCount = 0;
+    int activeThreadCount = 0;
+
+    std::mutex mutex;
+    std::condition_variable waitCondition;
     std::vector<ThreadData *> threads;
 };
 
 _ThreadPool::_ThreadPool(ThreadPool *pool)
     : ObjectImpl(pool)
 {
-    handlers = {
-        { "_runnableStateChanged", &_ThreadPool::runnableStateChanged },
-        { "_waitRunnableStarted", &_ThreadPool::waitRunnableStarted },
-        { "_waitRunnableFinished", &_ThreadPool::waitRunnableFinished },
-    };
+    installVirtualHandler("_runnableStateChanged", &_ThreadPool::runnableStateChanged);
 }
 
 void _ThreadPool::start(void *arg)
@@ -80,14 +76,15 @@ void _ThreadPool::start(void *arg)
                 break;
 
             ThreadRunnableData *runnableData = dynamic_cast<ThreadRunnableData *>(threadData->workTSP->takeData());
-            assert(runnableData);
+            if (!runnableData)
+                break;
 
             if (runnableData->future->state() & Future::Canceled)
-                continue;
+                break;
 
             if (runnableData->future->state() & Future::Paused) {
                 threadData->pauseDatas.push_back(runnableData);
-                continue;
+                break;
             }
 
             Runnable *runnable = runnableData->currentRunnable;
@@ -111,6 +108,19 @@ void _ThreadPool::start(void *arg)
                 }
             } while (true);
         } while (true);
+
+        if (!std::any_of(_p->threads.begin(), _p->threads.end(),
+                std::bind(std::equal_to<ThreadData *>(), std::placeholders::_1, threadData))) {
+            _p->activeThreadCount--;
+            if (_p->activeThreadCount == 0)
+                _p->waitCondition.notify_all();
+
+            break;
+        }
+
+        if (threadData->workTSP->dataCount() == 0) {
+            _p->activeThreadCount--;
+        }
     }
 }
 
@@ -132,7 +142,7 @@ ThreadData *_ThreadPool::currentThreadData(_ThreadPool *threadPool)
 
 void _ThreadPool::prepareThreads(int threadCount)
 {
-    if (maxThreadCount == threadCount)
+    if (threads.size() == threadCount)
         return;
 
     if (threadCount > _MAX_THREAD_COUNT) {
@@ -144,7 +154,7 @@ void _ThreadPool::prepareThreads(int threadCount)
     if (diff > 0) {
         spawnNewThreads(diff);
     } else {
-        decreaseThreads(diff);
+        decreaseThreads(std::abs(diff) > threadCount ? threadCount : std::abs(diff));
     }
 }
 
@@ -155,12 +165,60 @@ void _ThreadPool::spawnNewThreads(int number)
 
         ThreadData *data = new ThreadData;
         data->thread = std::move(th);
+        data->workTSP.reset(new BlockedTransporter);
+
         threads.push_back(data);
+        activeThreadCount++;
     }
 }
 
 void _ThreadPool::decreaseThreads(int number)
 {
+    ThreadPool *_p = this->p();
+    if (number == this->threads.size()) {
+        _p->waitForFinished();
+        return;
+    }
+
+    auto upwardElement = [](ThreadData *prev, ThreadData *next) {
+        return prev->workTSP->dataCount() > next->workTSP->dataCount();
+    };
+
+    std::vector<ThreadData *> readyRemoveThreads = { threads.begin(), threads.begin() + number };
+    std::make_heap(readyRemoveThreads.begin(), readyRemoveThreads.end(), upwardElement);
+    std::sort_heap(readyRemoveThreads.begin(), readyRemoveThreads.end(), upwardElement);
+
+    for (auto it = threads.begin() + number; it != threads.end();) {
+        if ((*it)->workTSP->dataCount() < readyRemoveThreads.front()->workTSP->dataCount()) {
+            std::pop_heap(readyRemoveThreads.begin(), readyRemoveThreads.end(), upwardElement);
+            readyRemoveThreads.pop_back();
+            readyRemoveThreads.push_back(std::move(*it));
+            std::push_heap(readyRemoveThreads.begin(), readyRemoveThreads.end(), upwardElement);
+            it = threads.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    for (ThreadData *threadData : readyRemoveThreads) {
+        if (threadData->workTSP->dataCount() == 0) {
+            threadData->workTSP->release();
+            continue;
+        }
+
+        while (threadData->workTSP->dataCount() > 0) {
+            AbstractData *data = threadData->workTSP->takeData();
+            ThreadData *targetThreadData = scheduleThread();
+            targetThreadData->workTSP->putData(data);
+        }
+
+        for (ThreadRunnableData *pausedData : threadData->pauseDatas) {
+            ThreadData *targetThreadData = scheduleThread();
+            targetThreadData->workTSP->putData(pausedData);
+        }
+
+        delete threadData;
+    }
 }
 
 ThreadRunnableData *_ThreadPool::allocateRunnableData(const std::shared_ptr<Runnable> &runnable, ThreadData *currentThread)
@@ -203,16 +261,6 @@ void _ThreadPool::runnableStateChanged(va_list &args, ObjectImpl *impl)
     }
 }
 
-void _ThreadPool::waitRunnableStarted(va_list &args, ObjectImpl *impl)
-{
-    Future *future = va_arg(args, Future *);
-}
-
-void _ThreadPool::waitRunnableFinished(va_list &args, ObjectImpl *impl)
-{
-    Future *future = va_arg(args, Future *);
-}
-
 ThreadData *_ThreadPool::scheduleThread()
 {
     // least load schedule
@@ -239,13 +287,14 @@ ThreadPool::ThreadPool()
 
 ThreadPool::~ThreadPool()
 {
+    waitForFinished();
 }
 
 void ThreadPool::setMaxThreads(int number)
 {
     _ThreadPool *_p = this->p();
     if (_p->threads.empty()) {
-        // Do not create a thread before it has started.
+        // Do not create any threads before the pool has started.
         return;
     }
 
@@ -253,7 +302,9 @@ void ThreadPool::setMaxThreads(int number)
         return;
 
     _p->maxThreadCount = number;
-    _p->prepareThreads(number);
+    if (!_p->threads.empty()) {
+        _p->prepareThreads(_p->maxThreadCount);
+    }
 }
 
 int ThreadPool::maxThreads() const
@@ -264,12 +315,13 @@ int ThreadPool::maxThreads() const
 
 int ThreadPool::platformIdealThreadCount()
 {
-    return 0;
+    //! @todo add platform method.
+    return 1;
 }
 
 int ThreadPool::activeThreadCount() const
 {
-    return p()->threads.size();
+    return p()->activeThreadCount;
 }
 
 std::shared_ptr<Future> ThreadPool::start(const std::shared_ptr<Runnable> &runnable)
@@ -293,6 +345,31 @@ std::shared_ptr<Future> ThreadPool::start(const std::shared_ptr<Runnable> &runna
 
 void ThreadPool::waitForFinished()
 {
+    _ThreadPool *_p = this->p();
+    std::unique_lock<std::mutex> locker(_p->mutex);
+
+    std::vector<ThreadData *> threads_tmp;
+    std::swap(_p->threads, threads_tmp);
+
+    for (ThreadData *threadData : threads_tmp) {
+        threadData->workTSP->release();
+    }
+
+    while (_p->activeThreadCount == 0) {
+        _p->waitCondition.wait(locker);
+    }
+
+    for (ThreadData *threadData : threads_tmp) {
+        for (ThreadRunnableData *runnaleData : threadData->pauseDatas) {
+            runnaleData->future->_setState(Future::Canceled);
+            runnaleData->future->_bindData(nullptr);
+
+            delete runnaleData;
+            threadData->pauseDatas.clear();
+        }
+
+        delete threadData;
+    }
 }
 
 SF_END_NAMESPACE

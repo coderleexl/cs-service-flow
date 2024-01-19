@@ -20,6 +20,9 @@ public:
     const VirtCallObject *vo() const;
 
     typedef void (*VirtualHandler)(va_list &, ObjectImpl *);
+    void installVirtualHandler(const std::unordered_map<const char *, VirtualHandler> &handlers);
+    void installVirtualHandler(const char *name, VirtualHandler handler);
+
     virtual void virtual_call(const char *name, int argc, ...) override;
 
 protected:

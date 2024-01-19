@@ -4,6 +4,7 @@
 #include "private/object_p.h"
 
 #include <atomic>
+#include <condition_variable>
 #include <cstdarg>
 
 SF_BEGIN_NAMESPACE
@@ -14,10 +15,10 @@ public:
     _Future::_Future(Future *pp)
         : ObjectImpl(pp)
     {
-        handlers = {
+        installVirtualHandler({
             { "_setState", &_Future::setState },
             { "_setThreadPool", &_Future::setThreadPool },
-        };
+        });
     }
 
     void changeState(Future::State state);
@@ -31,6 +32,8 @@ public:
 
     ThreadPool *threadPool = nullptr;
     void *data = nullptr;
+    std::mutex mutex;
+    std::condition_variable waitCondition;
 
     std::atomic<int> state;
 };
@@ -61,8 +64,10 @@ void _Future::changeState(Future::State state)
 {
     if (state & Future::Started || state & Future::Running) {
         removeState(Future::NoState | Future::Finished);
+        waitCondition.notify_one();
     } else if (state & Future::Finished) {
         removeState(Future::NoState | Future::Started | Future::Running);
+        waitCondition.notify_one();
     }
 
     addState(state);
@@ -126,7 +131,10 @@ void Future::waitForStarted()
         return;
     }
 
-    p->threadPool->_waitRunnableStarted(this);
+    std::unique_lock<std::mutex> locker(p->mutex);
+    while (!(p->state & Future::Started)) {
+        p->waitCondition.wait(locker);
+    }
 }
 
 void Future::waitForFinished()
@@ -137,12 +145,16 @@ void Future::waitForFinished()
         return;
     }
 
-    p->threadPool->_waitRunnableFinished(this);
+    std::unique_lock<std::mutex> locker(p->mutex);
+    while (!(p->state & Future::Finished)) {
+        p->waitCondition.wait(locker);
+    }
 }
 
 Future::State Future::state() const
 {
-    return NoState;
+    const _Future *p = this->p();
+    return Future::State(p->state.load());
 }
 
 SF_END_NAMESPACE
