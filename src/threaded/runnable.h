@@ -10,7 +10,7 @@ SF_BEGIN_NAMESPACE
 class SF_LIBRARY_EXPORT Runnable : public Task {
 public:
     Runnable();
-    virtual ~Runnable();
+    virtual ~Runnable() = default;
 
     virtual void precede(Task *task) override;
     virtual void behind(Task *task) override;
@@ -21,8 +21,6 @@ protected:
 
 private:
     SF_PRIVATE_CLASS(Runnable)
-
-    void *_p;
 };
 
 SF_END_NAMESPACE

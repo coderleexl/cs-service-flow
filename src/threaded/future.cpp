@@ -35,7 +35,7 @@ public:
     std::mutex mutex;
     std::condition_variable waitCondition;
 
-    std::atomic<int> state;
+    std::atomic<int> state = { 0 };
 };
 
 void _Future::setState(va_list &args, ObjectImpl *impl)
@@ -82,7 +82,7 @@ void _Future::addState(int s)
 
 void _Future::removeState(int s)
 {
-    state.fetch_add(s);
+    state.fetch_and(~s);
 }
 
 Future::Future()
