@@ -4,6 +4,7 @@
 #include "threaded/runnable.h"
 #include "threaded/threadpool.h"
 
+#include <gtest/gtest.h>
 #include <thread>
 
 SF_USING_NAMESPACE
@@ -35,7 +36,7 @@ private:
     int mCount = 0;
 };
 
-int main()
+TEST(TestFunc, TestThread)
 {
     auto runnable1 = std::make_shared<TestRunnable>(1);
     TestRunnable runnable2(2);
@@ -57,6 +58,12 @@ int main()
         std::cout << "State: " << feture->state() << std::endl;
         std::this_thread::sleep_for(std::chrono::milliseconds(100));
     }
+    ASSERT_TRUE(true);
+}
 
-    return 0;
+int main(int argc, char **argv)
+{
+    std::cout << "Test Run Start" << std::endl;
+    ::testing::InitGoogleTest(&argc, argv);
+    return RUN_ALL_TESTS();
 }

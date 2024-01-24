@@ -7,6 +7,7 @@
 #include "private/object_p.h"
 
 #include <assert.h>
+#include <functional>
 #include <map>
 #include <mutex>
 #include <queue>
